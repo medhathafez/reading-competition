@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مسابقة أبطال القراءة العربية</title>
+    <link href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@700&family=Cairo:wght@400;600&family=Playfair+Display:ital,wght@1,500&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; padding: 0; min-height: 100vh; display: flex; justify-content: center; align-items: center; font-family: 'Cairo', sans-serif; position: relative; overflow: hidden; background-image: url('photo.jpg'); background-size: cover; background-position: center; background-attachment: fixed; }
+        body::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255, 255, 255, 0.85); z-index: -1; }
+        
+        .floating-symbols { position: absolute; width: 100%; height: 100%; top: 0; left: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+        
+        .symbol { position: absolute; font-family: 'Aref Ruqaa', serif; font-weight: bold; animation: float ease-in-out infinite; }
+        
+        @keyframes float { 
+            0% { transform: translate(0px, 0px) rotate(0deg); } 
+            50% { transform: translate(var(--x-move), var(--y-move)) rotate(var(--rot)); } 
+            100% { transform: translate(0px, 0px) rotate(0deg); } 
+        }
+        
+        .main-container { text-align: center; padding: 40px 30px; border-radius: 20px; background: rgba(255, 255, 255, 0.5); backdrop-filter: blur(8px); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1); border: 2px solid rgba(255, 255, 255, 0.6); max-width: 900px; width: 90%; z-index: 1; position: relative; }
+        .arabic-title { font-family: 'Aref Ruqaa', serif; font-size: 3.5rem; color: #1a5276; margin: 0; text-shadow: 2px 2px 4px rgba(255,255,255,0.8); }
+        .english-subtitle { font-family: 'Playfair Display', serif; font-style: italic; font-size: 1.8rem; color: #d35400; margin-top: 0; margin-bottom: 40px; font-weight: 600; }
+        .form-row { display: flex; justify-content: center; align-items: center; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
+        .input-group { display: flex; align-items: center; background-color: #fff; padding: 8px 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.06); }
+        .input-group label { font-size: 1.2rem; font-weight: 600; color: #2c3e50; margin-left: 10px; white-space: nowrap; }
+        .input-group select, .search-box input { font-family: 'Cairo', sans-serif; font-size: 1.1rem; padding: 8px 12px; border: 2px solid #e0e0e0; border-radius: 8px; outline: none; min-width: 150px; }
+        .custom-dropdown { position: relative; min-width: 220px; }
+        .dropdown-header { font-family: 'Cairo', sans-serif; font-size: 1.1rem; padding: 8px 12px; border: 2px solid #e0e0e0; border-radius: 8px; background-color: #fcfcfc; cursor: pointer; text-align: right; color: #777; }
+        .dropdown-header.active { color: #333; font-weight: bold;}
+        .dropdown-body { display: none; position: absolute; top: 100%; right: 0; width: 100%; background: #fff; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); z-index: 100; margin-top: 5px; overflow: hidden; }
+        .dropdown-body.show { display: block; }
+        .search-box { padding: 10px; border-bottom: 1px solid #eee; background: #f9f9f9; }
+        .search-box input { width: 100%; box-sizing: border-box; }
+        .options-list { max-height: 150px; overflow-y: auto; list-style: none; margin: 0; padding: 0; }
+        .options-list li { padding: 10px 15px; cursor: pointer; border-bottom: 1px solid #f1f1f1; }
+        .options-list li:hover { background-color: #e8f8f5; color: #16a085; }
+        .add-new-btn { padding: 10px; text-align: center; background-color: #f0f3f4; color: #2980b9; font-weight: 600; cursor: pointer; }
+        .start-btn-container { margin-top: 30px; }
+        .start-btn { font-family: 'Aref Ruqaa', serif; font-size: 2.5rem; padding: 5px 60px; background: linear-gradient(45deg, #f1c40f, #e67e22, #e74c3c); color: #fff; border: none; border-radius: 50px; cursor: pointer; box-shadow: 0 8px 20px rgba(230, 126, 34, 0.4); transition: all 0.3s ease; }
+        .start-btn:hover { transform: translateY(-5px) scale(1.05); box-shadow: 0 12px 25px rgba(230, 126, 34, 0.6); }
+
+        /* تنسيق اللوجو الجديد */
+        .logo-container {
+            position: absolute;
+            top: 20px;
+            left: 150px;
+            z-index: 2; /* لضمان ظهوره فوق العناصر الأخرى */
+        }
+        .logo-container img {
+            width: 150px; /* حجم مناسب وكبير للوجو */
+            height: auto;
+            background: transparent; /* تأكيد الشفافية */
+        }
+    </style>
+</head>
+<body>
+    <div class="floating-symbols" id="symbols-container"></div>
+
+    <div class="logo-container">
+        <img src="school-logo.png" alt="JC Logo">
+    </div>
+
+    <div class="main-container">
+        <h1 class="arabic-title">مُسَابَقة أبطال القراءة العربية</h1>
+        <h2 class="english-subtitle">Arabic Reading Champions Competition</h2>
+
+        <div class="form-row">
+            <div class="input-group">
+                <label for="evaluator-select">اسم المقيم:</label>
+                <select id="evaluator-select">
+                    <option value="" disabled selected hidden>اختر اسمك</option>
+                    <option value="أ.سامية">أ.سامية</option>
+                    <option value="أ.مدحت">أ.مدحت</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="class-select">الصَّف:</label>
+                <select id="class-select">
+                    <option value="" disabled selected hidden>اختر الصف</option>
+                    <option value="7">السابع (7)</option>
+                    <option value="8">الثامن (8)</option>
+                    <option value="9">التاسع (9)</option>
+                    <option value="10">العاشر (10)</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="category-select">الفئة:</label>
+                <select id="category-select">
+                    <option value="" disabled selected hidden>اختر الفئة</option>
+                    <option value="متقدمين">متقدمين</option>
+                    <option value="مبتدئين">مبتدئين</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="input-group">
+                <label>اسم الطالب:</label>
+                <div class="custom-dropdown" id="student-dropdown">
+                    <div class="dropdown-header" id="student-header">الرجاء اختيار الصف أولاً</div>
+                    <div class="dropdown-body" id="student-body">
+                        <div class="search-box"><input type="text" id="student-search" placeholder="ابحث عن اسم..."></div>
+                        <ul class="options-list" id="student-list"></ul>
+                        <div class="add-new-btn" onclick="addNewStudent()">+ إضافة اسم جديد</div>
+                    </div>
+                </div>
+            </div>
+            <div class="input-group">
+                <label for="teacher-select">اسم المعلم:</label>
+                <select id="teacher-select">
+                    <option value="" disabled selected hidden>اختر المعلم</option>
+                    <option value="سامية">سامية</option><option value="وحيد">وحيد</option>
+                    <option value="مروة">مروة</option><option value="فيروز">فيروز</option>
+                    <option value="مدحت">مدحت</option><option value="حسنين">حسنين</option>
+                    <option value="هاني">هاني</option><option value="منصور">منصور</option>
+                    <option value="أحمد شلبي">أحمد شلبي</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="start-btn-container">
+            <button class="start-btn" onclick="startEvaluation()">ابـــدأ</button>
+        </div>
+    </div>
+
+    <script>
+        // دالة توليد 30 حرف متحرك عشوائياً بمختلف الألوان والاتجاهات
+        function generateRandomSymbols() {
+            const container = document.getElementById('symbols-container');
+            const chars = ['أ','ب','ت','ث','ج','ح','خ','د','ذ','ر','ز','س','ش','ص','ض','ط','ظ','ع','غ','ف','ق','ك','ل','م','ن','ه','و','ي','؟','!'];
+            const colors = ['#16a085', '#2980b9', '#f39c12', '#8e44ad', '#e74c3c', '#27ae60', '#d35400', '#1abc9c'];
+            
+            for (let i = 0; i < 30; i++) {
+                const symbol = document.createElement('div');
+                symbol.classList.add('symbol');
+                symbol.textContent = chars[Math.floor(Math.random() * chars.length)];
+                
+                // تحديد خصائص عشوائية للحرف
+                const size = (Math.random() * 3) + 1.5; // حجم بين 1.5 و 4.5
+                const top = Math.random() * 95; // موقع عمودي
+                const left = Math.random() * 95; // موقع أفقي
+                const duration = (Math.random() * 8) + 5; // مدة الحركة بين 5 و 13 ثانية
+                const delay = Math.random() * 5; // تأخير البدء
+                const opacity = (Math.random() * 0.4) + 0.3; // شفافية بين 0.3 و 0.7
+                
+                // تحديد اتجاهات حركة عشوائية للأنيميشن
+                const moveX = (Math.random() * 100) - 50; 
+                const moveY = (Math.random() * 100) - 50;
+                const rotate = (Math.random() * 60) - 30;
+
+                symbol.style.fontSize = `${size}rem`;
+                symbol.style.color = colors[Math.floor(Math.random() * colors.length)];
+                symbol.style.top = `${top}%`;
+                symbol.style.left = `${left}%`;
+                symbol.style.opacity = opacity;
+                symbol.style.animationDuration = `${duration}s`;
+                symbol.style.animationDelay = `${delay}s`;
+                
+                // تمرير المتغيرات العشوائية لملف الـ CSS
+                symbol.style.setProperty('--x-move', `${moveX}px`);
+                symbol.style.setProperty('--y-move', `${moveY}px`);
+                symbol.style.setProperty('--rot', `${rotate}deg`);
+                
+                container.appendChild(symbol);
+            }
+        }
+        
+        // تشغيل دالة الحروف عند تحميل الصفحة
+        window.onload = generateRandomSymbols;
+
+        // قاعدة بيانات الطلاب مفلترة ومنسقة مع الشعبة الدراسية
+        const studentsData = {
+            "7": [
+                "Shershah Saud - 7S1", "Zoya khan - 7F1", "Zayd Shah - 7G1", "Qiluo Wu - 7G1", "Aya Sophia Monaghan - 7F2", 
+                "Emma Stetsiv - 7S1", "Adam Qureshi - 7S1", "Rida Gouher - 7G1", "Muhammad Shawaiz Ashraf - 7S3", "Isa Hashim Khan - 7F3", 
+                "Aashi Tawani - 7S3", "Rayyan Sidat - 7M3", "Imaan Iqbal - 7M3", "Kamillah Mirza - 7M3", "Layaan Rehman - 7M3", 
+                "Shafin Rehan - 7M2", "Tengyi Zhou - 7F3", "Josephine Emma Christine Engzell - 7M3", "Yujoon Han - 7G3", "Arisha Katiyar - 7M2", 
+                "Aleena Naeem - 7S2", "Soha Sheikh - 7G3", "Aisha Noor - 7F3", "Hassan Zeeshan Ahmed - 7M2", "Matilde Emily Vassillo - 7S2", 
+                "Cinar Lena - 7M2", "Izyan Ali - 7F2", "Zaina Shah - 7S1", "Tiara Wadhwa - 7F2", "Bernadette Hester-Wyne - 7F1", 
+                "Amaan Khan - 7S1", "Yuexuan Zhang - 7G1", "Sera Shetty - 7G2", "Aman Rashid - 7G2", "Muhammad Hassan Naeem - 7F2", 
+                "Edith Hester-Wyne - 7F2", "Mako Okudera - 7G3", "David Cienfuegos Diaz - 7M3", "Zaydan Magoon - 7M1", "Ananya Venkatesh Nathan - 7S1"
+            ],
+            "8": [
+                "Saif Seer - 8G2", "Adam Basrai - 8G2", "Layla Bou Arman - 8G2", "Zaynab Zeeshan Ahmed - 8M1", "Sana Saadat - 8M1", 
+                "Hashim Rehan - 8M1", "Naksh Gyanchandani - 8G2", "Param Bahl - 8F2", "Parishay Shah - 8M1", "Abdullah Ismail Moizuddin - 8F2", 
+                "Adam Munir - 8F1", "Yusuf El-Gheriani - 8M1", "Yug Alawadi - 8F2", "Micah Hagar - 8G1", "Ayesha Bilal Sidiq - 8S3", 
+                "Kumayl Kanji - 8M2", "Rafay Ahmed Shakir - 8M2", "Ismaail Ahmed - 8M3", "Fayha Kamlani - 8G3", "Marco Reckart - 8F3", 
+                "Mohammed Ayaan Nisar - 8S2", "Ali Zain Vakil - 8S2", "Jibran Muhammad Murtaza - 8M3", "Zayaan Bokhari - 8S3", "Zahra Baker - 8F3", 
+                "Mohammed Noor - 8F3", "Adrian Amini - 8G3", "Khyati Ritesh Kamlani - 8F3", "Amaira Shah - 8G3", "Leo Nichol - 8M3", 
+                "Sara Khan - 8F2", "Enzo Lapietra - 8F2", "Yancheng Luo - 8G2", "Sawyer Woodward - 8M1"
+            ],
+            "9": [
+                "Lara Hassanien - 9M1", "Karen Shieshkly - 9F1", "Amaar Noman - 9G1", "Gia Kapoor - 9F1", "Adele Aldamzharova - 9G3", 
+                "Affan Farouq - 9S3", "Ali Abbas Bhojani - 9F3", "Elena Laurina - 9S2", "Ved Jay - 9G2", "Batool Basrai - 9G1", 
+                "Raaid Ridhwaan Saloojee - 9G2", "Zain Kidwai - 9G1", "Medansh Agarwal - 9G2", "Ana Madiha Mirza - 9M3", "Anabia Rahman - 9M3", 
+                "Mustafa Razzak - 9S2", "Nuha Gouher - 9G2", "Haniya Ahmad - 9F3", "Aleena Fawad - 9G3", "Maha Asim - 9M3", 
+                "Georgina Lightford - 9M3", "Misha Ali - 9S2", "Satvik Nar - 9M3", "Shershah Ali Irfan - 9S2", "Zoravar Singh - 9S3", 
+                "Adam Faisal Ahmad - 9M1", "Saadan Farooq - 9S1", "Ayat Minhas - 9G1", "Muhammadzakir Mahmood - 9F2", "Raima Mahmood - 9M2", 
+                "Mishaal Asjad - 9M2", "Elissa Morjane Metahri - 9G3", "Muhammad Arham Mandavia - 9G3", "Nadia Parekh - 9G3", "Anika Monga - 9G1", 
+                "Salma Bello - 9M3", "Adam Sekkat - 9M1"
+            ],
+            "10": [
+                "Aaliya Abdulgafoor Mohamed - 10S1", "Zeyad Bakeer - 10F3", "Farhan Sameer Salahuddin - 10S1", "Muhammad Khan - 10M1", "Reza Khan - 10G2", 
+                "Smayan Sethi - 10M3", "Khalil Subedar - 10F2", "Yahya Tauseef Ur Rahman - 10S1", "Laila Araman - 10M1", "Saiteja Agraharapu - 10F1", 
+                "Melina Molly Papachristou - 10F1", "Maya El Kareh - 10F1", "Abdullah Abdullahagha - 10M2", "Viraaj Bhambhani - 10S2", "Aadvika Sankaran - 10G2", 
+                "Reagan Paul Chiriyankandathe - 10F2", "Zara Shaikh - 10G2", "Liyana Haque - 10S2", "Kareem Jabsheh - 10M2", "Shaurya Choudhary - 10F3", 
+                "Myra Bhojwani - 10F1", "Lakshya Agarwal - 10G1", "Mayra Rai - 10F1", "Aisha Mahtani - 10F1", "Tarini Rustagi - 10G1", 
+                "Zaina Abdul Haque - 10M2", "Abdullah Al Khawaja - 10G2", "Muhammad Tanoli - 10G2", "Kashmala Jabbar - 10M2"
+            ]
+        };
+
+        const classSelect = document.getElementById('class-select');
+        const studentHeader = document.getElementById('student-header');
+        const studentBody = document.getElementById('student-body');
+        const studentList = document.getElementById('student-list');
+        const studentSearch = document.getElementById('student-search');
+        let currentGradeStudents = [];
+        let selectedStudentName = "";
+
+        classSelect.addEventListener('change', function() {
+            currentGradeStudents = studentsData[this.value] || [];
+            studentHeader.textContent = "اختر الطالب";
+            studentHeader.classList.remove('active');
+            selectedStudentName = "";
+            studentSearch.value = ''; 
+            renderStudentList(currentGradeStudents);
+        });
+
+        function renderStudentList(studentsArray) {
+            studentList.innerHTML = ''; 
+            studentsArray.forEach(student => {
+                const li = document.createElement('li');
+                li.textContent = student;
+                li.addEventListener('click', function() {
+                    studentHeader.textContent = student;
+                    selectedStudentName = student;
+                    studentHeader.classList.add('active');
+                    studentBody.classList.remove('show');
+                });
+                studentList.appendChild(li);
+            });
+        }
+
+        studentSearch.addEventListener('input', function() {
+            const searchTerm = this.value.trim().toLowerCase();
+            renderStudentList(currentGradeStudents.filter(s => s.toLowerCase().includes(searchTerm)));
+        });
+
+        studentHeader.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if(classSelect.value === "") return alert("الرجاء اختيار الصف أولاً");
+            studentBody.classList.toggle('show');
+            studentSearch.focus();
+        });
+
+        document.addEventListener('click', function(e) {
+            if (!document.getElementById('student-dropdown').contains(e.target)) studentBody.classList.remove('show');
+        });
+
+        function addNewStudent() {
+            if(classSelect.value === "") return alert("الرجاء اختيار الصف أولاً");
+            const newName = prompt("أدخل اسم الطالب الجديد:");
+            if (newName && newName.trim() !== "") {
+                studentsData[classSelect.value].push(newName.trim());
+                currentGradeStudents = studentsData[classSelect.value];
+                renderStudentList(currentGradeStudents);
+                studentHeader.textContent = newName.trim();
+                selectedStudentName = newName.trim();
+                studentHeader.classList.add('active');
+                studentBody.classList.remove('show');
+            }
+        }
+
+        function startEvaluation() {
+            const selectedEvaluator = document.getElementById('evaluator-select').value;
+            const selectedClass = classSelect.value;
+            const selectedCategory = document.getElementById('category-select').value;
+            const selectedTeacher = document.getElementById('teacher-select').value;
+
+            if(!selectedEvaluator || !selectedClass || !selectedCategory || selectedStudentName === "" || !selectedTeacher) {
+                alert("الرجاء إكمال جميع البيانات قبل البدء!");
+                return;
+            }
+
+            const evaluationData = {
+                evaluator: selectedEvaluator,
+                student: selectedStudentName,
+                grade: selectedClass,
+                category: selectedCategory,
+                teacher: selectedTeacher
+            };
+            localStorage.setItem('evalData', JSON.stringify(evaluationData));
+            window.location.href = 'evaluation.html';
+        }
+    </script>
+</body>
+</html>

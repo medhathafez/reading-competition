@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تقييم الطالب - مسابقة القراءة</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Aref+Ruqaa:wght@700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        /* إعدادات الشاشة الكاملة لضمان عدم التمرير واحتواء المحتوى */
+        body { 
+            font-family: 'Cairo', sans-serif; 
+            background-color: #f4f9f4; 
+            margin: 0; 
+            padding: 5px; /* تم تقليل الحواف الخارجية */
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100vh; 
+            box-sizing: border-box; 
+            overflow: hidden; /* يمنع التمرير نهائياً */
+        }
+        
+        #content-to-pdf { 
+            width: 100%; 
+            max-width: 1050px; 
+            margin: 0 auto; 
+            padding: 10px 15px; /* تم تقليل الهوامش الداخلية لتقليل الارتفاع */
+            background: white; 
+            border-radius: 8px; 
+            box-sizing: border-box;
+        }
+
+        .main-title { 
+            font-family: 'Aref Ruqaa', serif; 
+            color: #1a5276; 
+            text-align: center; 
+            margin: 0 0 6px 0; /* تم تقليل المسافة السفلية */
+            font-size: 1.3rem; /* تصغير الخط قليلاً ليناسب الشاشة */
+            background-color: #e8f8f5; 
+            padding: 4px 10px; 
+            border-radius: 5px; 
+            border: 1px solid #d1f2eb; 
+        }
+        
+        .header-info { 
+            background: #fff; 
+            padding: 4px 10px; 
+            border-radius: 6px; 
+            border: 1px solid #ddd; 
+            margin-bottom: 6px; 
+            display: flex; 
+            flex-wrap: nowrap; 
+            justify-content: space-around; 
+            font-size: 0.85rem; /* تصغير الخط */
+            border-right: 5px solid #27ae60; 
+        }
+        .header-info span { font-weight: 700; color: #2c3e50; }
+        .header-info span.val { color: #e67e22; margin-right: 5px;}
+        
+        table { width: 100%; border-collapse: collapse; text-align: center; }
+        th { background-color: #1a5276; color: #fff; padding: 4px; font-size: 0.9rem; border: 1px solid #154360; }
+        
+        td { 
+            padding: 4px 6px; /* تقليل المسافات داخل خلايا الجدول بشكل كبير */
+            border: 1px solid #bdc3c7; 
+            font-size: 0.8rem; /* تصغير الخط داخل الجدول */
+            line-height: 1.4; /* تقليل تباعد الأسطر */
+            word-spacing: 1px; 
+            vertical-align: middle; 
+            transition: 0.2s; 
+        }
+        
+        .criteria-title { font-weight: 700; background-color: #ecf0f1; color: #2c3e50; font-size: 0.85rem; }
+        
+        .score-cell { cursor: pointer; }
+        .score-cell:hover { background-color: #e8f8f5; }
+        .score-cell.selected { background-color: #27ae60 !important; color: #fff !important; font-weight: 700; box-shadow: inset 0 0 8px rgba(0,0,0,0.2); }
+        
+        .total-row { background-color: #fdf2e9; font-size: 1rem; font-weight: bold; color: #d35400; padding: 4px; }
+        
+        .score-display {
+            display: inline-block;
+            direction: ltr; 
+            unicode-bidi: isolate;
+        }
+
+        .submit-btn { margin-top: 6px; font-family: 'Aref Ruqaa', serif; font-size: 1.3rem; padding: 2px 30px; background-color: #27ae60; color: #fff; border: none; border-radius: 50px; cursor: pointer; box-shadow: 0 4px 8px rgba(39, 174, 96, 0.3); transition: 0.3s; }
+        .submit-btn:hover { background-color: #2ecc71; transform: translateY(-2px); }
+        #loading { display: none; margin-top: 4px; font-size: 0.9rem; color: #2980b9; font-weight: bold; text-align: center; }
+        
+        /* إضافة توافقية إضافية للشاشات الصغيرة جداً لضمان عدم القطع */
+        @media (max-height: 650px) {
+            td { padding: 3px; font-size: 0.75rem; line-height: 1.3; }
+            .main-title { font-size: 1.1rem; }
+            .header-info { font-size: 0.8rem; }
+            .submit-btn { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="content-to-pdf">
+        <h1 class="main-title" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 15px;">
+            <span>معايير التقييم لمسابقة القراءة العربية للناطقين بغيرها</span>
+            <span id="date-time-display" style="font-size: 0.9rem; color: #7f8c8d; font-family: 'Cairo', sans-serif; direction: ltr;"></span>
+        </h1>
+
+        <div class="header-info" id="student-info">
+            <div>المقيم: <span class="val" id="disp-evaluator">-</span></div>
+            <div>الطالب: <span class="val" id="disp-student">-</span></div>
+            <div>الصف: <span class="val" id="disp-grade">-</span></div>
+            <div>الفئة: <span class="val" id="disp-category">-</span></div>
+            <div>المعلم: <span class="val" id="disp-teacher">-</span></div>
+        </div>
+
+        <table id="evaluation-table">
+            <thead>
+                <tr>
+                    <th width="12%">المعيار</th>
+                    <th width="22%">ممتاز (5)</th>
+                    <th width="22%">جيد جدًا (4)</th>
+                    <th width="22%">جيد (3)</th>
+                    <th width="22%">مقبول (2)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr data-criteria="pronunciation">
+                    <td class="criteria-title">وضوح النطق</td>
+                    <td class="score-cell" data-score="5">نطق دقيق وواضح لجميع الأصوات، مع الالتزام بمخارج الحروف الصحيحة دون تردد.</td>
+                    <td class="score-cell" data-score="4">نطق واضح مع بعض الأخطاء الطفيفة التي لا تؤثر على الفهم.</td>
+                    <td class="score-cell" data-score="3">نطق مفهوم جزئيًا مع أخطاء ملحوظة في بعض الأصوات، خاصة غير المألوفة.</td>
+                    <td class="score-cell" data-score="2">نطق غير واضح مع العديد من الأخطاء التي تؤثر على الفهم وتغيير المعنى.</td>
+                </tr>
+                <tr data-criteria="fluency">
+                    <td class="criteria-title">الطلاقة</td>
+                    <td class="score-cell" data-score="5">قراءة سلسة وطبيعية دون توقفات أو تردد، مع انسيابية واضحة في الجمل.</td>
+                    <td class="score-cell" data-score="4">قراءة جيدة مع توقفات قليلة، وتردد طفيف في الكلمات غير المألوفة.</td>
+                    <td class="score-cell" data-score="3">قراءة بطيئة مع توقفات متكررة وصعوبة في نطق بعض الكلمات.</td>
+                    <td class="score-cell" data-score="2">قراءة متقطعة مع صعوبة في الربط بين الكلمات، وتوقفات كثيرة تؤثر على الفهم.</td>
+                </tr>
+                <tr data-criteria="expression">
+                    <td class="criteria-title">التعبير والتنغيم</td>
+                    <td class="score-cell" data-score="5">استخدام تنغيم صوتي صحيح يعكس المعنى، مع تفاعل طبيعي مع النص وتعبير واضح عن المشاعر.</td>
+                    <td class="score-cell" data-score="4">تنغيم جيد مع بعض الفروقات البسيطة في نبرة الصوت.</td>
+                    <td class="score-cell" data-score="3">ضعف في التنغيم أو عدم تناسبه مع المعنى، مما يقلل من وضوح التعبير والتأثير.</td>
+                    <td class="score-cell" data-score="2">قراءة بصوت رتيب دون تغيير في النبرة أو تعبير عن المعنى.</td>
+                </tr>
+                <tr data-criteria="accuracy">
+                    <td class="criteria-title">الدقة اللغوية<br>(الحركات والتراكيب)</td>
+                    <td class="score-cell" data-score="5">التزام تام بالحركات الإعرابية والتراكيب النحوية الصحيحة دون أخطاء.</td>
+                    <td class="score-cell" data-score="4">بعض الأخطاء البسيطة التي لا تؤثر على الفهم العام.</td>
+                    <td class="score-cell" data-score="3">أخطاء متكررة في الحركات والتراكيب تؤثر جزئيًا على الفهم.</td>
+                    <td class="score-cell" data-score="2">العديد من الأخطاء النحوية والإعرابية التي تعيق الفهم وتؤثر على المعنى بشكل كبير.</td>
+                </tr>
+                <tr>
+                    <td colspan="4" class="total-row" style="text-align: right; padding-right: 30px;">التقييم العام:</td>
+                    <td class="total-row" id="total-score"><span class="score-display">0 / 20</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <button class="submit-btn" id="submit-btn" onclick="submitAndDownload()">إرسال التقييم لجوجل درايف</button>
+    <div id="loading">جاري حفظ البيانات ورفع الـ PDF للمجلد... يرجى الانتظار ⏳</div>
+
+    <script>
+        // ==========================================
+        // منطقة إعدادات جوجل فورم 
+        // ==========================================
+        const FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSfQRU2VpyJ01hIeIhAvUzyB30-yKe6xtNc_tSWsyXcDM6Cw-w/formResponse";
+        const ENTRY_STUDENT       = "entry.744312433";  
+        const ENTRY_GRADE         = "entry.331964190";  
+        const ENTRY_CATEGORY      = "entry.314287726";  
+        const ENTRY_TEACHER       = "entry.2031022406"; 
+        const ENTRY_EVALUATOR     = "entry.916675011";  
+        const ENTRY_PRONUNCIATION = "entry.1640763631"; 
+        const ENTRY_FLUENCY       = "entry.825822076";  
+        const ENTRY_EXPRESSION    = "entry.254967773";  
+        const ENTRY_ACCURACY      = "entry.523759911";  
+        const ENTRY_TOTAL         = "entry.19340668";   
+        
+        // رابط إرسال الـ PDF لجوجل درايف
+        const GOOGLE_SCRIPT_URL   = "https://script.google.com/macros/s/AKfycbxhdBv4hI9Cx6CH7ELCOEIJfBZIeXGnX_n-XNFoDv6ADNYOW8BACBU5McDn7v_ihBo/exec";
+        // ==========================================
+
+        function updateDateTime() {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('en-GB');
+            const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            const dtElement = document.getElementById('date-time-display');
+            if(dtElement) dtElement.textContent = `${dateStr} | ${timeStr}`;
+        }
+        setInterval(updateDateTime, 1000);
+        updateDateTime();
+
+        const storedData = JSON.parse(localStorage.getItem('evalData'));
+        if(storedData) {
+            document.getElementById('disp-evaluator').textContent = storedData.evaluator;
+            document.getElementById('disp-student').textContent = storedData.student;
+            document.getElementById('disp-grade').textContent = storedData.grade;
+            document.getElementById('disp-category').textContent = storedData.category;
+            document.getElementById('disp-teacher').textContent = storedData.teacher;
+        }
+
+        const rows = document.querySelectorAll('tbody tr[data-criteria]');
+        let finalScores = { pronunciation: 0, fluency: 0, expression: 0, accuracy: 0 };
+
+        rows.forEach(row => {
+            const cells = row.querySelectorAll('.score-cell');
+            const criteriaId = row.getAttribute('data-criteria');
+            cells.forEach(cell => {
+                cell.addEventListener('click', function() {
+                    cells.forEach(c => c.classList.remove('selected'));
+                    this.classList.add('selected');
+                    finalScores[criteriaId] = parseInt(this.getAttribute('data-score'));
+                    updateTotal();
+                });
+            });
+        });
+
+        function updateTotal() {
+            const total = Object.values(finalScores).reduce((a, b) => a + b, 0);
+            document.getElementById('total-score').innerHTML = `<span class="score-display">${total} / 20</span>`;
+            return total;
+        }
+
+        async function submitAndDownload() {
+            if(Object.values(finalScores).includes(0)) {
+                alert("الرجاء تقييم الطالب في جميع المعايير الأربعة قبل التسجيل.");
+                return;
+            }
+
+            const btn = document.getElementById('submit-btn');
+            const loading = document.getElementById('loading');
+            btn.style.display = 'none';
+            loading.style.display = 'block';
+
+            const totalScore = updateTotal();
+
+            // 1. إرسال البيانات لجوجل فورم
+            const formData = new FormData();
+            formData.append(ENTRY_STUDENT, storedData.student);
+            formData.append(ENTRY_GRADE, storedData.grade);
+            formData.append(ENTRY_CATEGORY, storedData.category);
+            formData.append(ENTRY_TEACHER, storedData.teacher);
+            formData.append(ENTRY_EVALUATOR, storedData.evaluator);
+            formData.append(ENTRY_PRONUNCIATION, finalScores.pronunciation);
+            formData.append(ENTRY_FLUENCY, finalScores.fluency);
+            formData.append(ENTRY_EXPRESSION, finalScores.expression);
+            formData.append(ENTRY_ACCURACY, finalScores.accuracy);
+            formData.append(ENTRY_TOTAL, totalScore);
+
+            try {
+                fetch(FORM_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: formData
+                });
+            } catch (err) {
+                console.error("خطأ في إرسال الفورم:", err);
+            }
+
+            // 2. إعدادات الـ PDF
+            const element = document.getElementById('content-to-pdf');
+            const timestamp = new Date().toLocaleString('en-GB').replace(/[/:\s,]/g, '-');
+            const pdfFileName = `${storedData.student} - ${storedData.grade} - ${storedData.evaluator} - ${timestamp}.pdf`;
+            
+            const opt = {
+                margin: [10, 10, 10, 10], 
+                filename: pdfFileName,
+                image: { type: 'jpeg', quality: 1 },
+                html2canvas: { 
+                    scale: 2, 
+                    useCORS: true,
+                    scrollX: 0, 
+                    scrollY: 0
+                },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+            };
+
+            try {
+                // توليد ملف الـ PDF كرمز مشفر (Base64) بدلاً من تنزيله
+                const pdfDataUri = await html2pdf().set(opt).from(element).outputPdf('datauristring');
+                const base64Data = pdfDataUri.split(',')[1]; // استخراج الكود المشفر فقط
+
+                // تجهيز البيانات للإرسال إلى جوجل درايف
+                const payload = {
+                    fileName: pdfFileName,
+                    mimeType: "application/pdf",
+                    fileBase64: base64Data
+                };
+
+                // إرسال الملف إلى Google Apps Script
+                await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
+                    body: JSON.stringify(payload)
+                });
+
+                alert("✅ تم إرسال الدرجات وحفظ الـ PDF في جوجل درايف بنجاح!");
+                
+                // العودة للصفحة الرئيسية 
+                window.location.replace("index.html");
+                
+            } catch (error) {
+                console.error("Error generating/uploading PDF:", error);
+                alert("تم إرسال البيانات للفورم، ولكن حدث خطأ أثناء رفع ملف الـ PDF إلى جوجل درايف.");
+                btn.style.display = 'block';
+                loading.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
